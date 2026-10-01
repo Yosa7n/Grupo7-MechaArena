@@ -19,19 +19,38 @@ class Mecha:
         print(f"Ataque: {self.ataque}")
         print(f"Defensa: {self.defensa}")
 
+    def personalizar(self):
+        while True:
+            print("\n===== PERSONALIZAR MECHA =====")
+            print("1. Cambiar nombre")
+            print("2. Cambiar modelo")
+            print("3. Cambiar color")
+            print("4. Ver configuracion")
+            print("5. Terminar personalizacion")
+
+            opcion = input("Seleccione una opcion: ")
+
+            if opcion == "1":
+                self.nombre = input("Nuevo nombre: ")
+                print("Nombre actualizado correctamente.")
+
+            elif opcion == "2":
+                self.modelo = input("Nuevo modelo: ")
+                print("Modelo actualizado correctamente.")
+
+            elif opcion == "3":
+                self.color = input("Nuevo color: ")
+                print("Color actualizado correctamente.")
+
+            elif opcion == "4":
+                self.mostrar_estado()
+
+            elif opcion == "5":
+                print("Personalizacion finalizada.")
+                break
+
+            else:
+                print("Opcion invalida.")
+
     def esta_activo(self):
         return self.vida > 0
-def crear_mecha():
-    print("\n================================")
-    print("       CREACION DEL MECHA")
-    print("================================")
-
-    nombre = input("Ingrese el nombre del Mecha: ")
-    modelo = input("Ingrese el modelo del Mecha: ")
-    color = input("Ingrese el color del Mecha: ")
-
-    nuevo_mecha = Mecha(nombre, modelo, color)
-
-    print("\nMecha creado correctamente.")
-
-    return nuevo_mecha
