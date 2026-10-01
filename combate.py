@@ -5,19 +5,16 @@ class SistemaCombate:
     """
     Sistema de combate por turnos para Mecha-Arena.
 
-    Este módulo se encarga de:
-    - Ataques normales
+    Funciones principales:
+    - Ataque normal
     - Defensa
-    - Ataques especiales
-    - Cálculo de daño
-    - Control básico de energía
+    - Ataque especial
+    - Control de energía
+    - Turno automático del enemigo
+    - Verificación de victoria y derrota
     """
 
     def calcular_dano(self, atacante, defensor):
-        """
-        Calcula el daño de un ataque normal.
-        """
-
         ataque = self._obtener_atributo(
             atacante,
             ["ataque"],
@@ -29,6 +26,11 @@ class SistemaCombate:
             ["defensa"],
             0
         )
+
+        # Si el defensor activó defensa,
+        # obtiene protección adicional.
+        if getattr(defensor, "defendiendo", False):
+            defensa += 10
 
         variacion = random.randint(-3, 5)
 
@@ -46,7 +48,9 @@ class SistemaCombate:
             defensor
         )
 
-        vida = self._obtener_vida(defensor)
+        vida = self._obtener_vida(
+            defensor
+        )
 
         nueva_vida = max(
             0,
@@ -56,6 +60,17 @@ class SistemaCombate:
         self._establecer_vida(
             defensor,
             nueva_vida
+        )
+
+        # La defensa dura solamente un ataque.
+        if hasattr(defensor, "defendiendo"):
+            defensor.defendiendo = False
+
+        # Recupera un poco de energía
+        # después de atacar.
+        self.recuperar_energia(
+            atacante,
+            5
         )
 
         return dano
@@ -71,6 +86,11 @@ class SistemaCombate:
             True
         )
 
+        self.recuperar_energia(
+            mecha,
+            8
+        )
+
         return True
 
     def ataque_especial(
@@ -79,7 +99,7 @@ class SistemaCombate:
         defensor
     ):
         """
-        Ataque especial que consume energía.
+        Ataque más poderoso que consume energía.
         """
 
         costo_energia = 25
@@ -111,6 +131,13 @@ class SistemaCombate:
             0
         )
 
+        if getattr(
+            defensor,
+            "defendiendo",
+            False
+        ):
+            defensa += 10
+
         dano = int(
             ataque * 1.5
         ) - defensa
@@ -132,25 +159,189 @@ class SistemaCombate:
             )
         )
 
+        if hasattr(
+            defensor,
+            "defendiendo"
+        ):
+            defensor.defendiendo = False
+
         return dano
 
-    def esta_destruido(self, mecha):
+    def recuperar_energia(
+        self,
+        mecha,
+        cantidad
+    ):
         """
-        Comprueba si el mecha perdió toda su vida.
+        Recupera energía sin superar el máximo.
         """
 
-        return self._obtener_vida(
+        energia_actual = (
+            self._obtener_energia(
+                mecha
+            )
+        )
+
+        energia_maxima = (
+            self._obtener_atributo(
+                mecha,
+                [
+                    "energia_maxima",
+                    "energia"
+                ],
+                100
+            )
+        )
+
+        nueva_energia = min(
+            energia_maxima,
+            energia_actual + cantidad
+        )
+
+        self._establecer_energia(
+            mecha,
+            nueva_energia
+        )
+
+    def turno_enemigo(
+        self,
+        enemigo,
+        jugador
+    ):
+        """
+        Decide automáticamente la acción
+        del mecha enemigo.
+        """
+
+        energia = self._obtener_energia(
+            enemigo
+        )
+
+        decision = random.randint(
+            1,
+            100
+        )
+
+        # 30 % de posibilidad de especial
+        if (
+            energia >= 25
+            and decision <= 30
+        ):
+            dano = self.ataque_especial(
+                enemigo,
+                jugador
+            )
+
+            return (
+                "especial",
+                dano
+            )
+
+        # 20 % de posibilidad de defensa
+        elif decision <= 50:
+            self.defender(
+                enemigo
+            )
+
+            return (
+                "defensa",
+                0
+            )
+
+        # El resto será ataque normal
+        else:
+            dano = self.atacar(
+                enemigo,
+                jugador
+            )
+
+            return (
+                "ataque",
+                dano
+            )
+
+    def esta_destruido(
+        self,
+        mecha
+    ):
+        """
+        Comprueba si el mecha perdió
+        toda su vida.
+        """
+
+        return (
+            self._obtener_vida(
+                mecha
+            )
+            <= 0
+        )
+
+    def obtener_ganador(
+        self,
+        mecha_1,
+        mecha_2
+    ):
+        """
+        Devuelve el ganador cuando
+        uno de los mechas queda sin vida.
+        """
+
+        if self.esta_destruido(
+            mecha_1
+        ):
+            return mecha_2
+
+        if self.esta_destruido(
+            mecha_2
+        ):
+            return mecha_1
+
+        return None
+
+    def mostrar_estado(
+        self,
+        mecha
+    ):
+        """
+        Devuelve el estado actual
+        del mecha durante el combate.
+        """
+
+        nombre = self._obtener_atributo(
+            mecha,
+            ["nombre"],
+            "MECHA"
+        )
+
+        vida = self._obtener_vida(
             mecha
-        ) <= 0
+        )
 
-    def _obtener_vida(self, mecha):
+        energia = self._obtener_energia(
+            mecha
+        )
+
+        return (
+            f"{nombre} | "
+            f"Vida: {vida} | "
+            f"Energía: {energia}"
+        )
+
+    def _obtener_vida(
+        self,
+        mecha
+    ):
         """
-        Permite trabajar con vida_actual o vida.
+        Permite trabajar con
+        vida_actual o vida.
         """
 
         return self._obtener_atributo(
             mecha,
-            ["vida_actual", "vida"],
+            [
+                "vida_actual",
+                "vida"
+            ],
             100
         )
 
@@ -174,7 +365,10 @@ class SistemaCombate:
         else:
             mecha.vida_actual = valor
 
-    def _obtener_energia(self, mecha):
+    def _obtener_energia(
+        self,
+        mecha
+    ):
         return self._obtener_atributo(
             mecha,
             [
