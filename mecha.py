@@ -21,3 +21,17 @@ class Mecha:
 
     def esta_activo(self):
         return self.vida > 0
+def crear_mecha():
+    print("\n================================")
+    print("       CREACION DEL MECHA")
+    print("================================")
+
+    nombre = input("Ingrese el nombre del Mecha: ")
+    modelo = input("Ingrese el modelo del Mecha: ")
+    color = input("Ingrese el color del Mecha: ")
+
+    nuevo_mecha = Mecha(nombre, modelo, color)
+
+    print("\nMecha creado correctamente.")
+
+    return nuevo_mecha
