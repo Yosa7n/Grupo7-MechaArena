@@ -20,41 +20,6 @@ class Mecha:
         print(f"Defensa: {self.defensa}")
 
 
-    def crear_mecha():
-        print("\n================================")
-        print("       CREACION DEL MECHA")
-        print("================================")
-
-        while True:
-            nombre = input("Ingrese el nombre del Mecha: ").strip()
-
-            if nombre:
-                break
-
-            print("El nombre no puede estar vacio.")
-
-        while True:
-            modelo = input("Ingrese el modelo del Mecha: ").strip()
-
-            if modelo:
-                break
-
-            print("El modelo no puede estar vacio.")
-
-        while True:
-            color = input("Ingrese el color del Mecha: ").strip()
-
-            if color:
-                break
-
-            print("El color no puede estar vacio.")
-
-        nuevo_mecha = Mecha(nombre, modelo, color)
-
-        print("\nMecha creado correctamente.")
-
-        return nuevo_mecha
-
     def personalizar(self):
         while True:
             print("\n===== PERSONALIZAR MECHA =====")
@@ -105,3 +70,49 @@ class Mecha:
 
     def esta_activo(self):
         return self.vida > 0
+
+def crear_mecha():
+    print("\n================================")
+    print("       CREACION DEL MECHA")
+    print("================================")
+
+    while True:
+        nombre = input("Ingrese el nombre del Mecha: ").strip()
+
+        if nombre:
+            break
+
+        print("El nombre no puede estar vacio.")
+
+    while True:
+        modelo = input("Ingrese el modelo del Mecha: ").strip()
+
+        if modelo:
+            break
+
+        print("El modelo no puede estar vacio.")
+
+    while True:
+        color = input("Ingrese el color del Mecha: ").strip()
+
+        if color:
+            break
+
+        print("El color no puede estar vacio.")
+
+    nuevo_mecha = Mecha(nombre, modelo, color)
+
+    print("\nMecha creado correctamente.")
+
+    return nuevo_mecha
+
+if __name__ == "__main__":
+    mecha = crear_mecha()
+
+    print("\n===== MECHA CREADO =====")
+    mecha.mostrar_estado()
+
+    mecha.personalizar()
+
+    print("\n===== CONFIGURACION FINAL =====")
+    mecha.mostrar_estado()
