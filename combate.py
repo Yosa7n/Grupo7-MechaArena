@@ -10,7 +10,8 @@ class SistemaCombate:
     - Defensa
     - Ataque especial
     - Control de energía
-    - Turno automático del enemigo
+    - Golpes críticos
+    - Turno automático táctico del enemigo
     - Verificación de victoria y derrota
     """
 
@@ -32,11 +33,19 @@ class SistemaCombate:
         if getattr(defensor, "defendiendo", False):
             defensa += 10
 
+        # Variación aleatoria del daño.
         variacion = random.randint(-3, 5)
 
         dano = ataque + variacion - defensa
+        dano = max(1, dano)
 
-        return max(1, dano)
+        # 15 % de probabilidad de golpe crítico.
+        es_critico = random.randint(1, 100) <= 15
+
+        if es_critico:
+            dano = int(dano * 1.5)
+
+        return dano
 
     def atacar(self, atacante, defensor):
         """
@@ -211,9 +220,18 @@ class SistemaCombate:
         """
         Decide automáticamente la acción
         del mecha enemigo.
+
+        La CPU ahora toma decisiones más tácticas:
+        - Si tiene poca vida, aumenta su probabilidad de defenderse.
+        - Si tiene energía suficiente, puede usar ataque especial.
+        - En otros casos puede defenderse o atacar normalmente.
         """
 
         energia = self._obtener_energia(
+            enemigo
+        )
+
+        vida = self._obtener_vida(
             enemigo
         )
 
@@ -222,10 +240,26 @@ class SistemaCombate:
             100
         )
 
-        # 30 % de posibilidad de especial
+        # Si la CPU tiene poca vida,
+        # aumenta la posibilidad de defenderse.
+        if (
+            vida <= 30
+            and decision <= 45
+        ):
+            self.defender(
+                enemigo
+            )
+
+            return (
+                "defensa",
+                0
+            )
+
+        # Si tiene suficiente energía,
+        # puede utilizar un ataque especial.
         if (
             energia >= 25
-            and decision <= 30
+            and decision <= 35
         ):
             dano = self.ataque_especial(
                 enemigo,
@@ -237,8 +271,8 @@ class SistemaCombate:
                 dano
             )
 
-        # 20 % de posibilidad de defensa
-        elif decision <= 50:
+        # Defensa normal.
+        if decision <= 50:
             self.defender(
                 enemigo
             )
@@ -248,17 +282,16 @@ class SistemaCombate:
                 0
             )
 
-        # El resto será ataque normal
-        else:
-            dano = self.atacar(
-                enemigo,
-                jugador
-            )
+        # Ataque normal.
+        dano = self.atacar(
+            enemigo,
+            jugador
+        )
 
-            return (
-                "ataque",
-                dano
-            )
+        return (
+            "ataque",
+            dano
+        )
 
     def esta_destruido(
         self,
