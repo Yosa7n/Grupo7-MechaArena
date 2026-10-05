@@ -67,16 +67,31 @@ class Mecha:
             opcion = input("Seleccione una opcion: ")
 
             if opcion == "1":
-                self.nombre = input("Nuevo nombre: ")
-                print("Nombre actualizado correctamente.")
+                nuevo_nombre = input("Nuevo nombre: ").strip()
+
+                if nuevo_nombre:
+                    self.nombre = nuevo_nombre
+                    print("Nombre actualizado correctamente.")
+                else:
+                    print("El nombre no puede estar vacio.")
 
             elif opcion == "2":
-                self.modelo = input("Nuevo modelo: ")
-                print("Modelo actualizado correctamente.")
+                nuevo_modelo = input("Nuevo modelo: ").strip()
 
+                if nuevo_modelo:
+                    self.modelo = nuevo_modelo
+                    print("Modelo actualizado correctamente.")
+                else:
+                    print("El modelo no puede estar vacio.")
+           
             elif opcion == "3":
-                self.color = input("Nuevo color: ")
-                print("Color actualizado correctamente.")
+                nuevo_color = input("Nuevo color: ").strip()
+
+                if nuevo_color:
+                    self.color = nuevo_color
+                    print("Color actualizado correctamente.")
+                else:
+                    print("El color no puede estar vacio.")
 
             elif opcion == "4":
                 self.mostrar_estado()
