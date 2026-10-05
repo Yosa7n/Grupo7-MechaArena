@@ -5,7 +5,7 @@ from validaciones import validar_opcion, solicitar_nombre
 
 def mostrar_menu():
     print("\n================================")
-    print("          MECHA-ARENA")
+    print("===== BIENVENIDO A MECHA-ARENA =====")
     print("================================")
     print("1. Crear Mecha")
     print("2. Ver Mecha")
