@@ -11,7 +11,8 @@ def mostrar_menu():
     print("2. Ver Mecha")
     print("3. Iniciar Combate")
     print("4. Personalizar Mecha")
-    print("5. Salir")
+    print("5. Abrir interfaz gráfica")
+    print("6. Salir")
     print("================================")
 
 
@@ -19,7 +20,7 @@ def obtener_opcion():
     while True:
         opcion = input("Seleccione una opción: ").strip()
 
-        if validar_opcion(opcion, ["1", "2", "3", "4", "5"]):
+        if validar_opcion(opcion, ["1", "2", "3", "4", "5", "6"]):
             return opcion
 
         print("\nOpción no válida. Intente nuevamente.")
@@ -220,6 +221,11 @@ def main():
                 mecha_jugador.personalizar()
 
         elif opcion == "5":
+            from interfaz import iniciar_interfaz
+
+            iniciar_interfaz()
+
+        elif opcion == "6":
             print("\nGracias por jugar MECHA-ARENA.")
             print("Hasta la próxima.")
             break
