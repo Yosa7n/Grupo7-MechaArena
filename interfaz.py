@@ -9,7 +9,7 @@ from mecha import Mecha
 class InterfazMechaArena:
     def __init__(self, ventana):
         self.ventana = ventana
-        self.ventana.title("Mecha-Arena")
+        self.ventana.title("Mecha-Arena | Mazmorra")
         self.ventana.geometry("980x850")
         self.ventana.minsize(880, 790)
         self.ventana.configure(bg="#102d24")
@@ -26,9 +26,9 @@ class InterfazMechaArena:
         self.victorias = 0
         self.refacciones = []
         self.campos = {}
-        self.patas_jugador = tk.StringVar(value="1")
         self.etiquetas_estado = {}
         self.botones_combate = []
+        self.boton_iniciar = None
 
         self._crear_componentes()
         self._actualizar_estado()
@@ -39,16 +39,15 @@ class InterfazMechaArena:
 
         ttk.Label(
             marco,
-            text="MECHA-ARENA",
             text="MAZMORRA MECHA-ARENA",
+            font=("Segoe UI", 19, "bold"),
             foreground="#b5f27c"
         ).pack(anchor="w")
-
         self.etiqueta_piso = ttk.Label(marco, text="Piso 1 | Victorias: 0")
         self.etiqueta_piso.pack(anchor="w", pady=(2, 0))
+
         datos = ttk.LabelFrame(marco, text="Tu robot", padding=8)
         datos.pack(fill="x", pady=(8, 8))
-
         for fila, nombre in enumerate(("Nombre", "Modelo", "Color")):
             ttk.Label(datos, text=f"{nombre}:").grid(
                 row=fila,
@@ -61,14 +60,13 @@ class InterfazMechaArena:
             campo.grid(row=fila, column=1, sticky="ew", pady=2)
             self.campos[nombre] = campo
 
-        ttk.Label(datos, text="Patas:").grid(
+        ttk.Label(datos, text="Patas iniciales:").grid(
             row=3,
             column=0,
             sticky="w",
             padx=(0, 8),
             pady=2
         )
-        ttk.Combobox(
         ttk.Label(datos, text="1 (crece al vencer rivales, máximo 8)").grid(
             row=3,
             column=1,
@@ -84,8 +82,8 @@ class InterfazMechaArena:
 
         self.arena = tk.Canvas(
             marco,
-            height=285,
             height=320,
+            bg="#1b593b",
             highlightthickness=1,
             highlightbackground="#81c76b"
         )
@@ -97,6 +95,25 @@ class InterfazMechaArena:
             etiqueta = ttk.Label(estado, text=f"{nombre}: Sin combate")
             etiqueta.grid(row=fila, column=0, sticky="w", pady=2)
             self.etiquetas_estado[nombre] = etiqueta
+
+        inventario = ttk.LabelFrame(marco, text="Refacciones guardadas", padding=6)
+        inventario.pack(fill="x", pady=(2, 6))
+        self.lista_refacciones = tk.Listbox(
+            inventario,
+            height=3,
+            bg="#0b211a",
+            fg="#dbf4d1",
+            selectbackground="#528c43",
+            relief="flat",
+            highlightthickness=0
+        )
+        self.lista_refacciones.pack(side="left", fill="x", expand=True)
+        self.boton_usar_refaccion = ttk.Button(
+            inventario,
+            text="Usar refacción",
+            command=self._usar_refaccion
+        )
+        self.boton_usar_refaccion.pack(side="right", padx=(8, 0), fill="y")
 
         acciones = ttk.Frame(marco)
         acciones.pack(fill="x", pady=6)
@@ -124,68 +141,58 @@ class InterfazMechaArena:
     def _agregar_boton(self, marco, texto, comando):
         boton = ttk.Button(marco, text=texto, command=comando)
         boton.pack(side="left", expand=True, fill="x", padx=2)
-        if texto != "Iniciar combate":
+        if texto == "Iniciar combate":
+            self.boton_iniciar = boton
+        else:
             boton.state(["disabled"])
             self.botones_combate.append(boton)
 
     def _guardar_mecha(self):
-        nombre, modelo, color = (
-            self.campos[campo].get().strip()
-            for campo in ("Nombre", "Modelo", "Color")
-            f"Piso {self.victorias + 1}: {self.jugador.nombre} vs {self.enemigo.nombre}."
-        if not nombre or not modelo or not color:
+        valores = {
+            nombre: self.campos[nombre].get().strip()
+            for nombre in ("Nombre", "Modelo", "Color")
+        }
+        if not all(valores.values()):
             messagebox.showwarning(
                 "Datos incompletos",
                 "Completa nombre, modelo y color del Mecha."
             )
             return
 
-        patas = int(self.patas_jugador.get())
         if self.jugador is None:
-            self.jugador = Mecha(nombre, modelo, color, patas)
+            self.jugador = Mecha(
+                valores["Nombre"],
+                valores["Modelo"],
+                valores["Color"],
+                1
+            )
         else:
-            self.jugador.nombre = nombre
-            1
-            self.jugador.color = color
-            self.jugador.patas = patas
+            self.jugador.nombre = valores["Nombre"]
+            self.jugador.modelo = valores["Modelo"]
+            self.jugador.color = valores["Color"]
 
-        dificultad = self.victorias
-        rival.vida_maxima = 100 + dificultad * 10
-        rival.vida = rival.vida_maxima
-        self._escribir_registro(f"Mecha {nombre} guardado.")
+        self._escribir_registro(f"Robot {self.jugador.nombre} guardado.")
         self._actualizar_estado()
 
     def _iniciar_combate(self):
         if self.jugador is None:
-            messagebox.showinfo("Mecha requerido", "Primero crea tu Mecha.")
+            messagebox.showinfo("Mecha requerido", "Primero crea tu robot.")
+            return
+        if self.enemigo is not None:
+            return
+        if self.jugador.vida <= 0:
+            messagebox.showinfo(
+                "Mazmorra terminada",
+                "Tu robot ya no tiene vida. La mazmorra terminó."
+            )
             return
 
-        self.jugador.vida = 100
-        if ganador is self.jugador:
-            self.victorias += 1
-            if self.jugador.patas < 8:
-                self.jugador.patas += 1
-                self._escribir_registro(
-                    f"Tu robot creció: ahora tiene {self.jugador.patas} patas."
-                )
-            else:
-                self._escribir_registro("Tu robot ya alcanzó el máximo de 8 patas.")
-
-            porcentaje = random.choice((25, 50, 100))
-            self.refacciones.append(porcentaje)
-            self._escribir_registro(
-                f"Encontraste una refacción de vida del {porcentaje}%."
-            )
-        else:
-            self._escribir_registro("Tu robot fue destruido. La mazmorra terminó.")
+        # La vida permanece entre pisos; la energía se recarga al entrar.
         self.jugador.energia = 100
         self.jugador.defendiendo = False
         self.enemigo = self._generar_rival()
-        self.etiqueta_piso.configure(
-            text=f"Piso {self.victorias + 1} | Victorias: {self.victorias}"
-        )
         self._escribir_registro(
-            f"Comienza el combate: {self.jugador.nombre} vs {self.enemigo.nombre}."
+            f"Piso {self.victorias + 1}: {self.jugador.nombre} vs {self.enemigo.nombre}."
         )
         self._habilitar_acciones(True)
         self._actualizar_estado()
@@ -198,10 +205,13 @@ class InterfazMechaArena:
             random.choice(nombres),
             random.choice(modelos),
             random.choice(colores),
-            random.choice((4, 6, 8))
+            1
         )
-        rival.ataque = random.randint(15, 22)
-        rival.defensa = random.randint(6, 12)
+        dificultad = self.victorias
+        rival.vida_maxima = 100 + dificultad * 10
+        rival.vida = rival.vida_maxima
+        rival.ataque = random.randint(15, 22) + min(dificultad, 8)
+        rival.defensa = random.randint(6, 12) + min(dificultad // 2, 5)
         return rival
 
     def _accion(self, accion):
@@ -216,7 +226,7 @@ class InterfazMechaArena:
                 atacantes.append("jugador")
             elif accion == "defensa":
                 self.sistema.defender(self.jugador)
-                self._escribir_registro("Tu Mecha se prepara para defender.")
+                self._escribir_registro("Tu robot se prepara para defender.")
             else:
                 dano = self.sistema.ataque_especial(self.jugador, self.enemigo)
                 self._escribir_registro(f"El ataque especial causa {dano} de daño.")
@@ -239,15 +249,10 @@ class InterfazMechaArena:
             atacantes.append("rival")
 
         self._comprobar_fin()
-        self.etiqueta_piso.configure(
-            text=f"Piso {self.victorias + 1} | Victorias: {self.victorias}"
-        )
-        self._actualizar_refacciones()
         self._actualizar_estado()
         if self.enemigo is not None:
             self._reproducir_animacion(atacantes)
-        vida_maxima = max(1, getattr(mecha, "vida_maxima", 100))
-        vida = max(0, min(vida_maxima, getattr(mecha, "vida", vida_maxima)))
+
     def _reproducir_animacion(self, atacantes, indice=0):
         if indice >= len(atacantes):
             self._dibujar_arena()
@@ -260,21 +265,40 @@ class InterfazMechaArena:
         )
 
     def _comprobar_fin(self):
-        ganador = self.sistema.obtener_ganador(self.jugador, self.enemigo)
-        if ganador is None:
-            self._actualizar_estado()
-            return False
+        if self.sistema.esta_destruido(self.enemigo):
+            self._escribir_registro(f"Venciste a {self.enemigo.nombre}.")
+            self.victorias += 1
+            if self.jugador.patas < 8:
+                self.jugador.patas += 1
+                self._escribir_registro(
+                    f"Tu robot creció y ahora tiene {self.jugador.patas} patas."
+                )
+            else:
+                self._escribir_registro("Tu robot ya alcanzó el máximo de 8 patas.")
 
-        self._escribir_registro(f"Fin del combate. Ganador: {ganador.nombre}.")
-        self.enemigo = None
-        self._habilitar_acciones(False)
-        self._actualizar_estado()
-        return True
+            porcentaje = random.choice((25, 50, 100))
+            self.refacciones.append(porcentaje)
+            self._escribir_registro(
+                f"Encontraste una refacción de vida del {porcentaje}%."
+            )
+            self.enemigo = None
+            self._habilitar_acciones(False)
+            self._actualizar_estado()
+            return True
+
+        if self.sistema.esta_destruido(self.jugador):
+            self._escribir_registro("Tu robot fue destruido. La mazmorra terminó.")
+            self.enemigo = None
+            self._habilitar_acciones(False)
+            self._actualizar_estado()
+            return True
+
+        return False
 
     def _retirarse(self):
         if self.enemigo is None:
             return
-        self._escribir_registro("Te retiraste del combate.")
+        self._escribir_registro("Te retiraste del combate. Conservas la vida restante.")
         self.enemigo = None
         self._habilitar_acciones(False)
         self._actualizar_estado()
@@ -283,13 +307,54 @@ class InterfazMechaArena:
         estado = ["!disabled"] if habilitadas else ["disabled"]
         for boton in self.botones_combate:
             boton.state(estado)
+        if self.boton_iniciar is not None:
+            self.boton_iniciar.state(["disabled"] if habilitadas else ["!disabled"])
+        self._actualizar_refacciones()
+
+    def _usar_refaccion(self):
+        if self.jugador is None or self.enemigo is not None:
+            return
+        seleccion = self.lista_refacciones.curselection()
+        if not seleccion:
+            messagebox.showinfo("Inventario", "Selecciona una refacción guardada.")
+            return
+
+        porcentaje = self.refacciones.pop(seleccion[0])
+        vida_maxima = self.jugador.vida_maxima
+        vida_anterior = self.jugador.vida
+        cantidad = int(vida_maxima * porcentaje / 100)
+        self.jugador.vida = min(vida_maxima, vida_anterior + cantidad)
+        recuperada = self.jugador.vida - vida_anterior
+        self._escribir_registro(
+            f"Usaste una refacción del {porcentaje}% y recuperaste {recuperada} de vida."
+        )
+        self._actualizar_estado()
+
+    def _actualizar_refacciones(self):
+        self.lista_refacciones.delete(0, "end")
+        for numero, porcentaje in enumerate(self.refacciones, start=1):
+            self.lista_refacciones.insert(
+                "end",
+                f"{numero}. Refacción de vida {porcentaje}%"
+            )
+
+        puede_usar = (
+            bool(self.refacciones)
+            and self.jugador is not None
+            and self.jugador.vida < self.jugador.vida_maxima
+            and self.enemigo is None
+        )
+        self.boton_usar_refaccion.state(
+            ["!disabled"] if puede_usar else ["disabled"]
+        )
 
     def _actualizar_estado(self):
         if self.jugador is None:
             self.etiquetas_estado["Jugador"].configure(text="Jugador: Sin crear")
         else:
             self.etiquetas_estado["Jugador"].configure(
-                text=f"Jugador: {self.sistema.mostrar_estado(self.jugador)}"
+                text=f"Jugador: {self.sistema.mostrar_estado(self.jugador)} | "
+                f"Patas: {self.jugador.patas}"
             )
 
         if self.enemigo is None:
@@ -297,6 +362,12 @@ class InterfazMechaArena:
         else:
             texto = f"Rival: {self.sistema.mostrar_estado(self.enemigo)}"
         self.etiquetas_estado["Rival"].configure(text=texto)
+        self.etiqueta_piso.configure(
+            text=f"Piso {self.victorias + 1} | Victorias: {self.victorias}"
+        )
+        if self.jugador is not None and self.jugador.vida <= 0:
+            self.boton_iniciar.state(["disabled"])
+        self._actualizar_refacciones()
         self._dibujar_arena()
 
     def _color_robot(self, color):
@@ -322,16 +393,16 @@ class InterfazMechaArena:
         lienzo = self.arena
         lienzo.delete("all")
         ancho = max(lienzo.winfo_width(), 820)
-        alto = max(lienzo.winfo_height(), 285)
+        alto = max(lienzo.winfo_height(), 320)
         centro = ancho / 2
+        suelo = alto - 50
 
-        lienzo.create_rectangle(0, alto - 52, ancho, alto, fill="#17472f", outline="")
-        lienzo.create_line(0, alto - 51, ancho, alto - 51, fill="#8bcf70", width=2)
-        lienzo.create_line(centro, 22, centro, alto - 52, fill="#3b8050", dash=(5, 7))
+        lienzo.create_rectangle(0, suelo, ancho, alto, fill="#17472f", outline="")
+        lienzo.create_line(0, suelo, ancho, suelo, fill="#8bcf70", width=2)
         lienzo.create_text(
             centro,
-            25,
-            text="ARENA MECHA",
+            24,
+            text=f"PISO {self.victorias + 1}  |  ARENA",
             fill="#d4f4a5",
             font=("Segoe UI", 12, "bold")
         )
@@ -340,7 +411,7 @@ class InterfazMechaArena:
             lienzo.create_text(
                 centro,
                 alto / 2,
-                text="Crea tu robot para entrar a la arena",
+                text="Crea tu robot para entrar a la mazmorra",
                 fill="#e4f5df",
                 font=("Segoe UI", 15, "bold")
             )
@@ -353,9 +424,9 @@ class InterfazMechaArena:
         elif atacante == "rival":
             x_rival -= 20
 
-        self._dibujar_robot(lienzo, x_jugador, alto - 55, self.jugador, False)
+        self._dibujar_robot(lienzo, x_jugador, suelo, self.jugador, False)
         if self.enemigo is not None:
-            self._dibujar_robot(lienzo, x_rival, alto - 55, self.enemigo, True)
+            self._dibujar_robot(lienzo, x_rival, suelo, self.enemigo, True)
             if atacante is not None:
                 lienzo.create_text(
                     centro,
@@ -367,8 +438,8 @@ class InterfazMechaArena:
         else:
             lienzo.create_text(
                 x_rival,
-                alto - 118,
-                text="RIVAL ALEATORIO",
+                alto - 112,
+                text="SIGUIENTE RIVAL",
                 fill="#bce8a6",
                 font=("Segoe UI", 10, "bold")
             )
@@ -377,121 +448,74 @@ class InterfazMechaArena:
         color = self._color_robot(mecha.color)
         oscuro = "#283b36"
         direccion = -1 if mira_izquierda else 1
-        cuerpo_y = suelo - 112
-        nombre = getattr(mecha, "nombre", "Mecha")
-        patas = getattr(mecha, "patas", 4)
+        cuerpo_y = suelo - 105
+        patas = max(1, min(8, mecha.patas))
+        nombre_patas = "pata" if patas == 1 else "patas"
 
         lienzo.create_text(
             x,
-            suelo - 255,
-            text=f"{nombre}  |  {patas} patas",
+            52,
+            text=f"{mecha.nombre} | {patas} {nombre_patas}",
             fill="#f0f7de",
             font=("Segoe UI", 10, "bold")
         )
-        self._dibujar_barra_vida(lienzo, x, suelo - 235, mecha)
+        self._dibujar_barra_vida(lienzo, x, 67, mecha)
 
-        # Las patas se reparten simétricamente y siempre en número par.
-        if patas == 4:
-            posiciones = (-28, -9, 9, 28)
-        elif patas == 6:
-            posiciones = (-42, -25, -8, 8, 25, 42)
-        else:
-            posiciones = (-52, -37, -22, -7, 7, 22, 37, 52)
-
-        for desplazamiento in posiciones:
+        parejas = patas // 2
+        espacios = [
+            -30 + indice * 60 / max(1, parejas - 1)
+            for indice in range(parejas)
+        ]
+        for indice, desplazamiento in enumerate(espacios):
             cadera_x = x + desplazamiento
-            rodilla_x = cadera_x + direccion * (8 if desplazamiento * direccion < 0 else -8)
-            rodilla_y = suelo - 35
-            pie_x = cadera_x + direccion * 5
-            lienzo.create_line(
-                cadera_x,
-                suelo - 76,
-                rodilla_x,
-                rodilla_y,
-                pie_x,
-                suelo - 7,
-                fill=oscuro,
-                width=9,
-                capstyle=tk.ROUND,
-                joinstyle=tk.ROUND
-            )
-            lienzo.create_line(
-                cadera_x,
-                suelo - 76,
-                rodilla_x,
-                rodilla_y,
-                pie_x,
-                suelo - 7,
-                fill=color,
-                width=4,
-                capstyle=tk.ROUND,
-                joinstyle=tk.ROUND
-            )
-            lienzo.create_oval(
-                rodilla_x - 5,
-                rodilla_y - 5,
-                rodilla_x + 5,
-                rodilla_y + 5,
-                fill="#d8e2d3",
-                outline=oscuro,
-                width=2
-            )
-            lienzo.create_line(
-                pie_x - 8,
-                suelo - 5,
-                pie_x + 8,
-                suelo - 5,
-                fill="#d8e2d3",
-                width=5,
-                capstyle=tk.ROUND
-            )
+            for lado in (-1, 1):
+                rodilla_x = cadera_x + lado * (26 + indice * 3)
+                rodilla_y = cuerpo_y + 72
+                pie_x = cadera_x + lado * (43 + indice * 4)
+                puntos = (cadera_x, cuerpo_y + 48, rodilla_x, rodilla_y, pie_x, suelo - 5)
+                lienzo.create_line(*puntos, fill=oscuro, width=10, capstyle=tk.ROUND)
+                lienzo.create_line(*puntos, fill=color, width=5, capstyle=tk.ROUND)
+                lienzo.create_oval(
+                    rodilla_x - 5,
+                    rodilla_y - 5,
+                    rodilla_x + 5,
+                    rodilla_y + 5,
+                    fill="#d8e2d3",
+                    outline=oscuro,
+                    width=2
+                )
 
-        lienzo.create_line(
-            x - 41,
-            cuerpo_y + 32,
-            x - 66 * direccion,
-            cuerpo_y + 51,
-            x - 72 * direccion,
-            cuerpo_y + 75,
-            fill=oscuro,
-            width=13,
-            capstyle=tk.ROUND,
-            joinstyle=tk.ROUND
-        )
-        lienzo.create_line(
-            x + 41,
-            cuerpo_y + 32,
-            x + 66 * direccion,
-            cuerpo_y + 51,
-            x + 72 * direccion,
-            cuerpo_y + 75,
-            fill=oscuro,
-            width=13,
-            capstyle=tk.ROUND,
-            joinstyle=tk.ROUND
-        )
+        if patas % 2:
+            cadera_x = x + direccion * 10
+            rodilla_x = cadera_x + direccion * 16
+            rodilla_y = cuerpo_y + 72
+            pie_x = cadera_x + direccion * 25
+            puntos = (cadera_x, cuerpo_y + 48, rodilla_x, rodilla_y, pie_x, suelo - 5)
+            lienzo.create_line(*puntos, fill=oscuro, width=10, capstyle=tk.ROUND)
+            lienzo.create_line(*puntos, fill=color, width=5, capstyle=tk.ROUND)
+
         lienzo.create_rectangle(
-            x - 44,
-            cuerpo_y,
-            x + 44,
-            cuerpo_y + 67,
+            x - 48,
+            cuerpo_y + 24,
+            x + 48,
+            cuerpo_y + 66,
             fill=color,
             outline="#e1f1d4",
             width=2
         )
         lienzo.create_rectangle(
-            x - 32,
-            cuerpo_y + 12,
-            x + 32,
-            cuerpo_y + 27,
+            x - 34,
+            cuerpo_y + 32,
+            x + 34,
+            cuerpo_y + 43,
             fill="#29433a",
             outline="#91c978"
         )
         lienzo.create_oval(
-            x - 27,
-            cuerpo_y - 37,
-            x + 27,
-            cuerpo_y + 1,
+            x - 22,
+            cuerpo_y + 2,
+            x + 22,
+            cuerpo_y + 34,
             fill=oscuro,
             outline="#e1f1d4",
             width=2
@@ -499,31 +523,39 @@ class InterfazMechaArena:
         ojo_x = x + 11 * direccion
         lienzo.create_rectangle(
             ojo_x - 9,
-            cuerpo_y - 24,
+            cuerpo_y + 13,
             ojo_x + 9,
-            cuerpo_y - 14,
+            cuerpo_y + 22,
             fill="#f5e86c",
             outline=""
         )
         lienzo.create_oval(
-            x - 8,
-            cuerpo_y + 35,
-            x + 8,
-            cuerpo_y + 51,
+            x - 7,
+            cuerpo_y + 49,
+            x + 7,
+            cuerpo_y + 61,
             fill="#b5f27c",
             outline=""
         )
 
     def _dibujar_barra_vida(self, lienzo, x, y, mecha):
         ancho = 118
-        vida = max(0, min(100, getattr(mecha, "vida", 100)))
-        lienzo.create_rectangle(x - ancho / 2, y, x + ancho / 2, y + 9, fill="#25372f", outline="")
+        vida_maxima = max(1, mecha.vida_maxima)
+        vida = max(0, min(vida_maxima, mecha.vida))
         lienzo.create_rectangle(
             x - ancho / 2,
             y,
-            x - ancho / 2 + ancho * vida / 100,
+            x + ancho / 2,
             y + 9,
-            fill="#9de36b" if vida > 30 else "#e35b4f",
+            fill="#25372f",
+            outline=""
+        )
+        lienzo.create_rectangle(
+            x - ancho / 2,
+            y,
+            x - ancho / 2 + ancho * vida / vida_maxima,
+            y + 9,
+            fill="#9de36b" if vida / vida_maxima > 0.3 else "#e35b4f",
             outline=""
         )
 

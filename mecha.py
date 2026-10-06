@@ -1,6 +1,6 @@
 class Mecha:
-    def __init__(self, nombre, modelo, color, patas=4):
-        if patas not in (4, 6, 8):
+    def __init__(self, nombre, modelo, color, patas=1):
+        if not isinstance(patas, int) or not 1 <= patas <= 8:
             raise ValueError("Un Mecha debe tener entre 1 y 8 patas.")
 
         self.nombre = nombre
