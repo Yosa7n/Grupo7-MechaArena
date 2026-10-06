@@ -10,8 +10,8 @@ class InterfazMechaArena:
     def __init__(self, ventana):
         self.ventana = ventana
         self.ventana.title("Mecha-Arena")
-        self.ventana.geometry("920x760")
-        self.ventana.minsize(820, 700)
+        self.ventana.geometry("980x850")
+        self.ventana.minsize(880, 790)
         self.ventana.configure(bg="#102d24")
 
         estilo = ttk.Style()
@@ -23,8 +23,10 @@ class InterfazMechaArena:
         self.sistema = SistemaCombate()
         self.jugador = None
         self.enemigo = None
+        self.victorias = 0
+        self.refacciones = []
         self.campos = {}
-        self.patas_jugador = tk.StringVar(value="4")
+        self.patas_jugador = tk.StringVar(value="1")
         self.etiquetas_estado = {}
         self.botones_combate = []
 
@@ -38,10 +40,12 @@ class InterfazMechaArena:
         ttk.Label(
             marco,
             text="MECHA-ARENA",
-            font=("Segoe UI", 19, "bold"),
+            text="MAZMORRA MECHA-ARENA",
             foreground="#b5f27c"
         ).pack(anchor="w")
 
+        self.etiqueta_piso = ttk.Label(marco, text="Piso 1 | Victorias: 0")
+        self.etiqueta_piso.pack(anchor="w", pady=(2, 0))
         datos = ttk.LabelFrame(marco, text="Tu robot", padding=8)
         datos.pack(fill="x", pady=(8, 8))
 
@@ -65,13 +69,12 @@ class InterfazMechaArena:
             pady=2
         )
         ttk.Combobox(
-            datos,
-            textvariable=self.patas_jugador,
-            values=("4", "6", "8"),
-            state="readonly",
-            width=8
-        ).grid(row=3, column=1, sticky="w", pady=2)
-
+        ttk.Label(datos, text="1 (crece al vencer rivales, máximo 8)").grid(
+            row=3,
+            column=1,
+            sticky="w",
+            pady=2
+        )
         datos.columnconfigure(1, weight=1)
         ttk.Button(
             datos,
@@ -82,7 +85,7 @@ class InterfazMechaArena:
         self.arena = tk.Canvas(
             marco,
             height=285,
-            bg="#1b593b",
+            height=320,
             highlightthickness=1,
             highlightbackground="#81c76b"
         )
@@ -129,7 +132,7 @@ class InterfazMechaArena:
         nombre, modelo, color = (
             self.campos[campo].get().strip()
             for campo in ("Nombre", "Modelo", "Color")
-        )
+            f"Piso {self.victorias + 1}: {self.jugador.nombre} vs {self.enemigo.nombre}."
         if not nombre or not modelo or not color:
             messagebox.showwarning(
                 "Datos incompletos",
@@ -142,10 +145,13 @@ class InterfazMechaArena:
             self.jugador = Mecha(nombre, modelo, color, patas)
         else:
             self.jugador.nombre = nombre
-            self.jugador.modelo = modelo
+            1
             self.jugador.color = color
             self.jugador.patas = patas
 
+        dificultad = self.victorias
+        rival.vida_maxima = 100 + dificultad * 10
+        rival.vida = rival.vida_maxima
         self._escribir_registro(f"Mecha {nombre} guardado.")
         self._actualizar_estado()
 
@@ -155,9 +161,29 @@ class InterfazMechaArena:
             return
 
         self.jugador.vida = 100
+        if ganador is self.jugador:
+            self.victorias += 1
+            if self.jugador.patas < 8:
+                self.jugador.patas += 1
+                self._escribir_registro(
+                    f"Tu robot creció: ahora tiene {self.jugador.patas} patas."
+                )
+            else:
+                self._escribir_registro("Tu robot ya alcanzó el máximo de 8 patas.")
+
+            porcentaje = random.choice((25, 50, 100))
+            self.refacciones.append(porcentaje)
+            self._escribir_registro(
+                f"Encontraste una refacción de vida del {porcentaje}%."
+            )
+        else:
+            self._escribir_registro("Tu robot fue destruido. La mazmorra terminó.")
         self.jugador.energia = 100
         self.jugador.defendiendo = False
         self.enemigo = self._generar_rival()
+        self.etiqueta_piso.configure(
+            text=f"Piso {self.victorias + 1} | Victorias: {self.victorias}"
+        )
         self._escribir_registro(
             f"Comienza el combate: {self.jugador.nombre} vs {self.enemigo.nombre}."
         )
@@ -213,10 +239,15 @@ class InterfazMechaArena:
             atacantes.append("rival")
 
         self._comprobar_fin()
+        self.etiqueta_piso.configure(
+            text=f"Piso {self.victorias + 1} | Victorias: {self.victorias}"
+        )
+        self._actualizar_refacciones()
         self._actualizar_estado()
         if self.enemigo is not None:
             self._reproducir_animacion(atacantes)
-
+        vida_maxima = max(1, getattr(mecha, "vida_maxima", 100))
+        vida = max(0, min(vida_maxima, getattr(mecha, "vida", vida_maxima)))
     def _reproducir_animacion(self, atacantes, indice=0):
         if indice >= len(atacantes):
             self._dibujar_arena()
