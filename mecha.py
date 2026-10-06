@@ -1,8 +1,12 @@
 class Mecha:
-    def __init__(self, nombre, modelo, color):
+    def __init__(self, nombre, modelo, color, patas=4):
+        if patas not in (4, 6, 8):
+            raise ValueError("Un Mecha debe tener 4, 6 u 8 patas.")
+
         self.nombre = nombre
         self.modelo = modelo
         self.color = color
+        self.patas = patas
 
         self.vida = 100
         self.energia = 100
